@@ -90,26 +90,19 @@ def predict():
     try:
         # Download image from URL
         pil_image = download_image_from_url(image_url)
-        
-        # Save temporarily for processing
         temp_path = "/tmp/downloaded_image.jpg"
         pil_image.save(temp_path)
-        
-        # Load image using the proper function
+
         from depth_pro import load_rgb
         image, _, f_px = load_rgb(temp_path)
-        
-        # Transform image
         input_tensor = transform(image).unsqueeze(0)
-        
-        # Run inference
+
         with torch.no_grad():
             prediction = model.infer(input_tensor, f_px=f_px)
             depth = prediction["depth"].detach().cpu().numpy().squeeze().tolist()
-        
-        # Clean up temp file
+
         os.remove(temp_path)
-        
+
         return jsonify({
             'depth': depth,
             'image_url': image_url,
@@ -118,10 +111,11 @@ def predict():
                 'height': pil_image.height
             }
         })
-    
     except Exception as e:
+        import traceback
         logger.error(f"Prediction error: {e}")
-        return jsonify({'error': str(e)}), 500
+        logger.error(traceback.format_exc())
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 @app.route('/health', methods=['GET'])
 def health():
